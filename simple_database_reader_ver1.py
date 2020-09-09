@@ -1,7 +1,12 @@
 from pypxlib import Table
+import requests
+import time
+import json
+
+API_URL = "https://api.gymsp.it/passes"
 
 # Replace Lafovi znaky
-def lafprint(text):
+def f_decode_laf(text):
     text_string = str(text)
 
     text_string = text_string.replace("ý", "ě")
@@ -23,38 +28,57 @@ def lafprint(text):
     text_string = text_string.replace("╠", "Ě")
     text_string = text_string.replace("¦", "Ý")
 
-    print(text_string)
-
-# Print last n passes
-def f_print_last_n_passes(table_passes, num_from_end):
-    for i in range(num_from_end):
-        line = i - num_from_end
-        print(table_passes[line])
+    return(text_string)
 
 # Get row from table_person with chip_id
-def f_print_person_with_chip_id(table_person, chip_id):
+def f_get_person_with_chip_id(table_person, chip_id):
     chip_id = str(chip_id)
     for row in table_person:
         if row["Cip"] == chip_id:
-            lafprint(row)
+            return(row)
 
 # Main
-def main():
+def main(last_logged_pass):
     table_passes = Table("PRUCHODY.db")
     table_person = Table("OSOBY.db")
 
+    found = False
+    position_from_end = 1
 
-    num_passes = int(input("How many last passes do you want to see? "))
-    #num_passes = 1
-    f_print_last_n_passes(table_passes, num_passes)
+    while(not found):
+        position = len(table_passes) - position_from_end
+        current_pass = table_passes[position]
 
-    print("\n")
+        print("Current ID", current_pass.ID)
+        print("Last ID", last_logged_pass)
 
-    chip_id = "0000015730731300"
-    f_print_person_with_chip_id(table_person, chip_id)
+        if current_pass.ID <= last_logged_pass:
+            found = True
+            print("Last record found")
+        else:        
+            person = f_get_person_with_chip_id(table_person, current_pass.CIP)
+
+            payload = ("{\n  \"datetime\": \"%s\",\n  \"studentName\": \"%s\",\n  \"studentSurname\": \"%s\",\n  \"recordId\": \"%s\",\n  \"chipId\": \"%s\"\n}"  \
+                % (current_pass.Cas, f_decode_laf(person.Jmeno), f_decode_laf(person.Prijmeni), current_pass.ID, current_pass.CIP)).encode("utf-8")
+
+            headers = {'content-type': 'application/json'}
+
+            response = requests.request("POST", url=API_URL, data=payload, headers=headers)
+
+            position_from_end += 1
+            print("Inserted record")
+
+    print("Going to sleep")
+    time.sleep(10)
+    main(table_passes[len(table_passes) - 1].ID)
 
 if __name__ == "__main__":
-    main()
+    querystring = {"last":"1"}
+    response = requests.request("GET", url=API_URL, data="", params=querystring)
+
+    last_record = json.loads(response.text)
+
+    main(int(last_record["recordId"]))
 
     # Wait for user to read output
     input("\nPress enter to continue...")
