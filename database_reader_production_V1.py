@@ -22,8 +22,11 @@ def f_get_person_with_chip_id(table_person, chip_id):
             return(row)
 
 # Post new data to API and repeat
-def f_post_new_records_into_api(api_url, parse_table, decoding_table, decode_with="", last_sent_id=0, log=False):
+def f_post_new_records_into_api(api_url, decode_with="", last_sent_id=0, log=False):
     last_sent_id = int(last_sent_id)
+
+    parse_table = Table("PRUCHODY.db")
+    decoding_table = Table("OSOBY.db")
 
     found = False
     position_from_end = 1
@@ -62,13 +65,13 @@ if __name__ == "__main__":
         response = requests.request("GET", url=API_URL, data="", params=querystring)
         return (eval(response.text))
 
-    table_passes = Table("PRUCHODY.db")
-    table_person = Table("OSOBY.db")
+    #table_passes = Table("PRUCHODY.db")
+    #table_person = Table("OSOBY.db")
     try:
         while (True):
             try:
                 last_record = f_get_last_record()
-                f_post_new_records_into_api(api_url=API_URL, parse_table=table_passes, decoding_table=table_person, decode_with="CIP", last_sent_id=last_record["recordId"], log=True)
+                f_post_new_records_into_api(api_url=API_URL, decode_with="CIP", last_sent_id=last_record["recordId"], log=True)
             except:
                 print("Error reading database or posting to API")
                 print("Prosíme kontaktujte vývojáře")
