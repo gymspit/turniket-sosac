@@ -1,6 +1,8 @@
 from pypxlib import Table
 import requests, time
 
+API_URL = "https://api.gymsp.it/passes"
+
 
 # Replace Lafovi znaky
 def f_decode_laf(text):
@@ -57,28 +59,32 @@ def f_post_new_records_into_api(api_url, decode_with="", last_sent_id=0, log=Fal
 
     if log: print("Going to sleep", end='\n\n')
 
-if __name__ == "__main__":
-    API_URL = "https://api.gymsp.it/passes"
-
-    def f_get_last_record():
+# Get last record from API
+def f_get_last_record():
         querystring = {"last":"1"}
         response = requests.request("GET", url=API_URL, data="", params=querystring)
         return (eval(response.text))
 
-    #table_passes = Table("PRUCHODY.db")
-    #table_person = Table("OSOBY.db")
+# Main func
+def main(log=False, timeout=20):
     try:
         while (True):
             try:
                 last_record = f_get_last_record()
-                f_post_new_records_into_api(api_url=API_URL, decode_with="CIP", last_sent_id=last_record["recordId"], log=True)
+                f_post_new_records_into_api(api_url=API_URL, decode_with="CIP", last_sent_id=last_record["recordId"], log=log)
             except:
-                print("Error reading database or posting to API")
-                print("Prosíme kontaktujte vývojáře")
-            time.sleep(20)
+                if log: print("Unexpected error occured in loop in main func. Couldn't insert new data. Trying again in 20 seconds.")
+                time.sleep(timeout)
+                return None
+            time.sleep(timeout)
+            return None
     except:
-        print("\n\n\n\n\n")
-        print("Prosíme kontaktujte vývojáře")
+        if log: print("Unexpected error occured in main func. Couldn't insert new data. Trying again in 20 seconds.")
+        time.sleep(timeout)
+        return None
 
-    # Wait for user to read output
-    input("\nPress enter to continue...")
+if __name__ == "__main__":
+    while True:
+        main(log=True, timeout=5)
+    
+    
