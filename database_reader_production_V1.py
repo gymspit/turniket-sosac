@@ -46,8 +46,8 @@ def f_post_new_records_into_api(api_url, decode_with="", last_sent_id=0, log=Fal
 
         person = f_get_person_with_chip_id(decoding_table, current_pass[decode_with])
 
-        payload = ("{\"datetime\": \"%s\", \"studentName\": \"%s\", \"studentSurname\": \"%s\", \"recordId\": \"%s\", \"chipId\": \"%s\"}"  \
-            % (current_pass.Cas, f_decode_laf(person.Jmeno), f_decode_laf(person.Prijmeni), current_pass.ID, current_pass.CIP)).encode("utf-8")
+        payload = ("{\"datetime\": \"%s\", \"studentName\": \"%s\", \"studentSurname\": \"%s\", \"recordId\": \"%s\", \"turniketId\": \"%s\", \"chipId\": \"%s\"}"  \
+            % (current_pass.Cas, f_decode_laf(person.Jmeno), f_decode_laf(person.Prijmeni), current_pass.ID, current_pass.Terminal, current_pass.CIP)).encode("utf-8")
 
         headers = {'content-type': 'application/json'}
 
