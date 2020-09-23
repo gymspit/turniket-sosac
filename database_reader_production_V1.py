@@ -45,9 +45,12 @@ def f_post_new_records_into_api(api_url, decode_with="", last_sent_id=0, log=Fal
         if log: print("Last ID", last_sent_id)
 
         person = f_get_person_with_chip_id(decoding_table, current_pass[decode_with])
+        
+        if person is None:
+            person = {"Prijmeni":"None", "Jmeno":"None"}
 
-        payload = ("{\"datetime\": \"%s\", \"studentName\": \"%s\", \"studentSurname\": \"%s\", \"recordId\": \"%s\", \"turniketId\": \"%s\", \"chipId\": \"%s\"}"  \
-            % (current_pass.Cas, f_decode_laf(person.Jmeno), f_decode_laf(person.Prijmeni), current_pass.ID, current_pass.Terminal, current_pass.CIP)).encode("utf-8")
+        payload = ("{\"datetime\": \"%s\", \"studentName\": \"%s\", \"studentSurname\": \"%s\", \"recordId\": \"%s\", \"direction\": \"%s\", \"turniketId\": \"%s\", \"chipId\": \"%s\"}"  \
+            % (current_pass["Cas"], f_decode_laf(person["Jmeno"]), f_decode_laf(person["Prijmeni"]), current_pass["ID"], current_pass["Druh"], current_pass["Terminal"], current_pass["CIP"])).encode("utf-8")
 
         headers = {'content-type': 'application/json'}
 
@@ -58,11 +61,15 @@ def f_post_new_records_into_api(api_url, decode_with="", last_sent_id=0, log=Fal
         position_from_last_sent += 1
         if log: print("Inserted record")
 
-        if current_pass.ID == last_pass.ID:
+        if current_pass["ID"] == last_pass["ID"]:
             found = True
             if log: print("Last record found")
-
-
+        else if (current_pass["ID"] - last_sent_id) > 10000:
+            found = True
+            if log: print("Maximum number of rows open. Closing them and restarting.")
+    
+    parse_table.close()
+    decoding_table.close()
     if log: print("Going to sleep", end='\n\n')
 
 # Get last record from API
