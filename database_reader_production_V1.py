@@ -88,12 +88,18 @@ def main(log=False, timeout=20):
                 f_post_new_records_into_api(api_url=API_URL, decode_with="CIP", last_sent_id=last_record["recordId"], log=log)
             except Exception as e:
                 if log: print(f"Unexpected error {{{e}}}. Couldn't insert new data. Trying again in {timeout} seconds.")
+                parse_table.close()
+                decoding_table.close()
+                
                 time.sleep(timeout)
                 return None
             time.sleep(timeout)
             return None
     except Exception as e:
         if log: print(f"Unexpected error {{{e}}}. Couldn't insert new data. Trying again in {timeout} seconds.")
+        parse_table.close()
+        decoding_table.close()
+
         time.sleep(timeout)
         return None
 
