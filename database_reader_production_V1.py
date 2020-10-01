@@ -68,7 +68,7 @@ def f_get_person_with_chip_id(table_person, chip_id):
 
 # Post new data to API and repeat
 def f_post_new_records_into_api(
-    api_url, decode_with="", last_sent_id=0, log=False, timeout=20
+    api_url, decode_with="", last_sent_id=0, log=False, timeout=10
 ):
     try:
         last_sent_id = int(last_sent_id)
@@ -119,7 +119,7 @@ def f_post_new_records_into_api(
             headers = {"content-type": "application/json"}
 
             response = requests.request(
-                "POST", url=API_URL, data=payload, headers=headers, timeout=1
+                "POST", url=API_URL, data=payload, headers=headers, timeout=10
             )
             print(current_pass)
             print(response)
@@ -132,7 +132,7 @@ def f_post_new_records_into_api(
                 found = True
                 if log:
                     print("Last record found")
-            elif (current_pass["ID"] - last_sent_id) > 10000:
+            elif (current_pass["ID"] - last_sent_id) > 5:
                 found = True
                 if log:
                     print("Maximum number of rows open. Closing them and restarting.")
@@ -156,7 +156,7 @@ def f_post_new_records_into_api(
 def f_get_last_record():
     querystring = {"last": "1"}
     response = requests.request(
-        "GET", url=API_URL, data="", params=querystring, timeout=1
+        "GET", url=API_URL, data="", params=querystring, timeout=10
     )
     return eval(response.text)
 
@@ -179,6 +179,7 @@ def main(log=False, timeout=20):
             if log:
                 print(f"Going to sleep for { timeout } seconds.")
             time.sleep(timeout)
+            break
         except Exception as e:
             if log:
                 print(
