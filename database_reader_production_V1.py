@@ -71,85 +71,81 @@ def f_post_new_records_into_api(
     api_url, decode_with="", last_sent_id=0, log=False, timeout=20
 ):
     try:
-        last_sent_id = int(last_sent_id)
+        with Table("PRUCHODY.db") as parse_table:
+            with Table("OSOBY.db") as decoding_table:
+                last_sent_id = int(last_sent_id)
 
-        parse_table = Table("PRUCHODY.db")
-        decoding_table = Table("OSOBY.db")
+                found = False
+                position_from_last_sent = 1
 
-        found = False
-        position_from_last_sent = 1
+                last_record_id = len(parse_table) - 1
+                last_pass = parse_table[last_record_id]
 
-        last_record_id = len(parse_table) - 1
-        last_pass = parse_table[last_record_id]
+                if last_record_id == last_sent_id:
+                    if log:
+                        print("No new records found")
+                    return
 
-        if last_record_id == last_sent_id:
-            if log:
-                print("No new records found")
-            return
+                while not found:
+                    position = last_sent_id + position_from_last_sent
+                    current_pass = parse_table[position]
 
-        while not found:
-            position = last_sent_id + position_from_last_sent
-            current_pass = parse_table[position]
+                    if log:
+                        print("Current ID", current_pass.ID)
+                    if log:
+                        print("Last ID", last_sent_id)
 
-            if log:
-                print("Current ID", current_pass.ID)
-            if log:
-                print("Last ID", last_sent_id)
+                    person = f_get_person_with_chip_id(
+                        decoding_table, current_pass[decode_with]
+                    )
 
-            person = f_get_person_with_chip_id(
-                decoding_table, current_pass[decode_with]
-            )
+                    if person is None:
+                        person = {"Prijmeni": "None", "Jmeno": "None"}
 
-            if person is None:
-                person = {"Prijmeni": "None", "Jmeno": "None"}
+                    payload = (
+                        '{"datetime": "%s", "studentName": "%s", "studentSurname": "%s", "recordId": "%s", "direction": "%s", "turniketId": "%s", "chipId": "%s"}'
+                        % (
+                            current_pass["Cas"],
+                            f_decode_laf(person["Jmeno"]),
+                            f_decode_laf(person["Prijmeni"]),
+                            current_pass["ID"],
+                            current_pass["Druh"],
+                            current_pass["Terminal"],
+                            current_pass["CIP"],
+                        )
+                    ).encode("utf-8")
 
-            payload = (
-                '{"datetime": "%s", "studentName": "%s", "studentSurname": "%s", "recordId": "%s", "direction": "%s", "turniketId": "%s", "chipId": "%s"}'
-                % (
-                    current_pass["Cas"],
-                    f_decode_laf(person["Jmeno"]),
-                    f_decode_laf(person["Prijmeni"]),
-                    current_pass["ID"],
-                    current_pass["Druh"],
-                    current_pass["Terminal"],
-                    current_pass["CIP"],
-                )
-            ).encode("utf-8")
+                    headers = {"content-type": "application/json"}
 
-            headers = {"content-type": "application/json"}
+                    response = requests.request(
+                        "POST", url=API_URL, data=payload, headers=headers, timeout=1
+                    )
+                    print(current_pass)
+                    print(response)
 
-            response = requests.request(
-                "POST", url=API_URL, data=payload, headers=headers, timeout=1
-            )
-            print(current_pass)
-            print(response)
+                    position_from_last_sent += 1
+                    if log:
+                        print("Inserted record")
 
-            position_from_last_sent += 1
-            if log:
-                print("Inserted record")
+                    if current_pass["ID"] == last_pass["ID"]:
+                        found = True
+                        if log:
+                            print("Last record found")
+                    elif (current_pass["ID"] - last_sent_id) > 10000:
+                        found = True
+                        if log:
+                            print(
+                                "Maximum number of rows open. Closing them and restarting."
+                            )
 
-            if current_pass["ID"] == last_pass["ID"]:
-                found = True
-                if log:
-                    print("Last record found")
-            elif (current_pass["ID"] - last_sent_id) > 10000:
-                found = True
-                if log:
-                    print("Maximum number of rows open. Closing them and restarting.")
-
-        parse_table.close()
-        decoding_table.close()
+        if log:
+            print("Going to sleep", end="\n\n")
 
     except Exception as e:
         if log:
             print(
                 f"Unexpected error {{{e}}}. Couldn't insert new data. Trying again in {timeout} seconds."
             )
-        parse_table.close()
-        decoding_table.close()
-
-    if log:
-        print("Going to sleep", end="\n\n")
 
 
 # Get last record from API
